@@ -1,0 +1,9 @@
+# RoadSense Dependencies for Raspberry Pi 4 Model B
+ultralytics>=8.0.0
+opencv-python-headless>=4.8.0
+cloudinary>=1.36.0
+requests>=2.31.0
+pyserial>=3.5
+python-dotenv>=1.0.0
+pynmea2>=1.19.0
+numpy>=1.24.0
