@@ -1,1 +1,17 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment and secrets
 .env*
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# OS and Editor artifacts
+.DS_Store
+Thumbs.db
+*.swp
