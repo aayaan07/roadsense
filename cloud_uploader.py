@@ -193,17 +193,25 @@ class AsyncUploader:
             logger.error(f"Cloudinary in-memory upload error: {e}")
             return None
 
-    def _write_to_firestore(self, doc_data: Dict[str, Any]) -> bool:
+    def _write_to_firestore(self, doc_data: Dict[str, Any], collection: Optional[str] = None) -> bool:
         """
         Writes alert document directly to Firebase Firestore using REST API.
         Does not require Google Cloud service account JSON files on the Raspberry Pi.
+        Supports specifying a custom target collection (e.g. 'tests').
         """
         try:
             fields = dict_to_firestore_fields(doc_data)
             payload = {"fields": fields}
 
+            target_url = (
+                f"https://firestore.googleapis.com/v1/projects/{self.config.FIREBASE_PROJECT_ID}/"
+                f"databases/(default)/documents/{collection}?key={self.config.FIREBASE_API_KEY}"
+                if collection
+                else self.firestore_url
+            )
+
             response = requests.post(
-                self.firestore_url,
+                target_url,
                 json=payload,
                 headers={"Content-Type": "application/json"},
                 timeout=10.0

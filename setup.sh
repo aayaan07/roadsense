@@ -12,10 +12,10 @@ echo "[1/4] Installing system dependencies (OpenCV runtime, v4l2, Python dev)...
 sudo apt-get update
 sudo apt-get install -y python3-pip python3-venv libgl1-mesa-glx libglib2.0-0 v4l-utils
 
-# 2. Setup Python virtual environment
+# 2. Setup Python virtual environment with system site packages (enables Picamera2 on Pi 4 & 5)
 echo "[2/4] Setting up Python virtual environment..."
 if [ ! -d "venv" ]; then
-    python3 -m venv venv
+    python3 -m venv --system-site-packages venv
 fi
 source venv/bin/activate
 

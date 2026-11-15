@@ -1,6 +1,6 @@
-# RoadSense - Raspberry Pi 4 Edge Detection System
+# RoadSense - Raspberry Pi 4 & 5 Edge Detection System
 
-High-performance real-time edge detection system for Raspberry Pi 4 Model B. Detects road hazards/potholes using an NCNN/YOLO model, stamps live GPS coordinates, streams images directly from RAM to Cloudinary, and triggers alerts in Firebase Firestore.
+High-performance real-time edge detection system for Raspberry Pi 4 Model B and Raspberry Pi 5. Detects road hazards/potholes using an NCNN/YOLO model, stamps live GPS coordinates, streams images directly from RAM to Cloudinary, and triggers alerts in Firebase Firestore.
 
 ---
 
@@ -19,8 +19,10 @@ High-performance real-time edge detection system for Raspberry Pi 4 Model B. Det
 ## Hardware Connection Guide (Raspberry Pi 4 Model B)
 
 ### 1. Camera
-- **USB Webcam**: Plug into any USB 3.0 / 2.0 port.
-- **Raspberry Pi Camera Module (CSI)**: Connect ribbon cable to the CSI camera connector with blue backing facing the Ethernet port.
+- **USB Webcam**: Plug into any USB 3.0 / 2.0 port (identical on Pi 4 and Pi 5).
+- **Raspberry Pi Camera Module (CSI)**:
+  - **Raspberry Pi 4**: Uses standard 15-pin 1.0mm pitch ribbon cable.
+  - **Raspberry Pi 5**: Uses a 22-pin 0.5mm mini-CSI ribbon cable plugged into `CAM/DISP 0` or `CAM/DISP 1`. The codebase automatically detects and uses `Picamera2` for Pi 5 CSI cameras.
 
 ### 2. GPS Module (NEO-6M / NEO-7M / NEO-8M / USB GPS)
 If using GPIO UART:
@@ -96,11 +98,16 @@ Before launching the full service, run the built-in diagnostic test to verify yo
 ```bash
 python test.py
 ```
-This tool lets you:
-1. Upload a dummy in-memory image to Cloudinary and post a record to Firestore.
-2. Verify 480p camera capture.
-3. Test GPS serial communication and fix status.
-4. Execute dry-run inference with the model.
+Menu options available:
+1. **Option 1**: Synthetic Cloud Test (Mock image -> Cloudinary & Firestore)
+2. **Option 2**: Hardware Test (Camera + GPS)
+3. **Option 3**: Model Inference Test
+4. **Option 4** *(Default)*: **Live Camera Capture + GPS -> Cloudinary & Firestore (`tests` collection)**
+   - Clicks a live 480p frame from your camera.
+   - Reads current GPS coordinates.
+   - Uploads directly from RAM buffer to Cloudinary (zero disk writes).
+   - Writes document directly to Firebase Firestore under the **`tests`** collection.
+5. **Option 5**: Run all tests.
 
 ---
 
