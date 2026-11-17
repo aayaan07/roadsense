@@ -38,20 +38,51 @@ class CameraStream:
         """Initializes and opens the camera capture device."""
         logger.info(f"Opening camera source: {self.source} at {self.width}x{self.height}...")
 
-        # 1. Attempt standard OpenCV capture (ideal for USB cameras & standard V4L2)
-        opened = self._open_opencv()
-        if opened:
-            return True
-
-        # 2. If OpenCV failed and this is camera index 0 on Raspberry Pi, attempt Picamera2 (for CSI Camera on Pi 4/5)
-        if HAS_PICAMERA2 and isinstance(self.source, int) and self.source == 0:
-            logger.info("OpenCV could not open source 0; attempting Picamera2 for CSI camera...")
-            opened = self._open_picamera2()
-            if opened:
+        # 1. Attempt standard OpenCV capture (ideal for USB cameras & standard V4L2).
+        #    Opening a device is not enough: on Pi OS Bookworm a CSI camera exposes
+        #    /dev/video* nodes that open fine but never deliver frames, so verify a read.
+        if self._open_opencv():
+            if self._verify_opencv_frames():
                 return True
+            logger.warning(
+                f"OpenCV opened source {self.source} but returned no frames "
+                "(typical for CSI cameras); releasing and trying Picamera2..."
+            )
+            self._release_opencv()
+
+        # 2. Fall back to Picamera2 (CSI cameras on Pi 4/5) for any camera index
+        if isinstance(self.source, int):
+            if not HAS_PICAMERA2:
+                logger.warning(
+                    "Picamera2 is not importable in this Python environment. If you use a CSI "
+                    "camera, create the venv with --system-site-packages "
+                    "(python3 -m venv --system-site-packages venv) and run: "
+                    "sudo apt install -y python3-picamera2"
+                )
+            else:
+                logger.info("Attempting Picamera2 for CSI camera...")
+                if self._open_picamera2():
+                    return True
 
         logger.error(f"Failed to open video source: {self.source}")
         return False
+
+    def _verify_opencv_frames(self, attempts: int = 10) -> bool:
+        """Returns True if the already-opened OpenCV capture actually yields a frame."""
+        for _ in range(attempts):
+            ret, frame = self.cap.read()
+            if ret and frame is not None and frame.size > 0:
+                return True
+            time.sleep(0.1)
+        return False
+
+    def _release_opencv(self):
+        if self.cap is not None:
+            try:
+                self.cap.release()
+            except Exception:
+                pass
+            self.cap = None
 
     def _open_opencv(self) -> bool:
         """Attempts to open camera via OpenCV."""
@@ -64,9 +95,11 @@ class CameraStream:
             self.cap = cv2.VideoCapture(self.source)
 
         if not self.cap or not self.cap.isOpened():
+            self._release_opencv()
             self.cap = cv2.VideoCapture(self.source)
 
         if not self.cap.isOpened():
+            self._release_opencv()
             return False
 
         # Configure 480p resolution and frame rate
@@ -118,9 +151,11 @@ class CameraStream:
                 rgb_frame = self.picam2.capture_array()
                 if rgb_frame is None or rgb_frame.size == 0:
                     return False, None
-                # Convert RGB to BGR for OpenCV / YOLO processing
-                bgr_frame = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2BGR)
-                return True, bgr_frame
+                # Picamera2's "RGB888" format is laid out B,G,R in memory, i.e. already
+                # OpenCV's BGR order, so no colour conversion is needed.
+                if rgb_frame.ndim == 3 and rgb_frame.shape[2] == 4:
+                    rgb_frame = rgb_frame[:, :, :3]
+                return True, np.ascontiguousarray(rgb_frame)
             except Exception as e:
                 logger.error(f"Error capturing frame via Picamera2: {e}")
                 return False, None

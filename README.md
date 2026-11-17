@@ -63,7 +63,7 @@ cd "d:\Second Year\Iot-Project\code" # Or your Pi path: ~/Iot-Project/code
 
 2. **Create Python Virtual Environment**:
 ```bash
-python3 -m venv venv
+python3 -m venv --system-site-packages venv   # lets the venv see Picamera2 (CSI camera)
 source venv/bin/activate
 ```
 
@@ -156,6 +156,7 @@ After=network.target
 [Service]
 Type=simple
 User=pi
+SupplementaryGroups=dialout video
 WorkingDirectory=/home/pi/Iot-Project/code
 ExecStart=/home/pi/Iot-Project/code/venv/bin/python main.py
 Restart=always
