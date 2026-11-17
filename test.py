@@ -91,6 +91,33 @@ def test_cloudinary_and_firestore():
         return False
 
 
+def wait_for_gps_fix(gps, timeout: float = 45.0) -> dict:
+    """Polls the GPS reader until a fix is acquired or the timeout expires; prints progress."""
+    start = time.time()
+    last = -1
+    while time.time() - start < timeout:
+        c = gps.get_coordinates()
+        if c["has_fix"] and c["latitude"] is not None:
+            return c
+        n = int((time.time() - start) // 5)
+        if n != last:
+            last = n
+            print(f"      ...waiting for satellite fix ({int(time.time() - start)}s, "
+                  f"NMEA sentences received: {c['sentences_received']})")
+        time.sleep(0.5)
+    return gps.get_coordinates()
+
+
+def print_gps_hint(coords: dict):
+    if coords["sentences_received"] == 0:
+        print("[WARN] No NMEA data received at all: check wiring (GPS TX -> Pi RX/GPIO15), "
+              "power, baud rate (GPS_BAUDRATE) and that the serial port is enabled.")
+    elif not coords["has_fix"]:
+        print("[NOTICE] GPS module is talking but has no satellite fix yet. Take the antenna "
+              "outdoors or to a window with open sky; a cold start can take 1-15 minutes. "
+              "Most modules blink an LED once per second once a fix is locked.")
+
+
 def test_camera():
     print_step("3. Testing Camera Stream (480p)")
     cam = CameraStream(
@@ -119,9 +146,8 @@ def test_gps():
     print_step("4. Testing GPS Serial Connection")
     gps = GPSReader(port=Config.GPS_PORT, baudrate=Config.GPS_BAUDRATE)
     gps.start()
-    print(f"[INFO] Listening on {Config.GPS_PORT} for 3 seconds...")
-    time.sleep(3.0)
-    coords = gps.get_coordinates()
+    print(f"[INFO] Listening on {Config.GPS_PORT} for up to 45 seconds...")
+    coords = wait_for_gps_fix(gps, 45.0)
     gps.stop()
     print(f"[INFO] GPS Status: {coords['raw_status']}")
     print(f"  - Fix Acquired: {coords['has_fix']}")
@@ -131,7 +157,7 @@ def test_gps():
     if coords["has_fix"]:
         print("[SUCCESS] Real-time GPS lock active!")
     else:
-        print("[NOTICE] GPS device responded or is searching for satellite fix (normal indoors).")
+        print_gps_hint(coords)
     return True
 
 
@@ -162,8 +188,8 @@ def test_live_camera_capture_and_push(collection: str = "tests"):
     print("[1/4] Reading live GPS coordinates...")
     gps = GPSReader(port=Config.GPS_PORT, baudrate=Config.GPS_BAUDRATE)
     gps.start()
-    time.sleep(1.5)  # Allow background thread to read current serial sentence
-    gps_data = gps.get_coordinates()
+    gps_data = wait_for_gps_fix(gps, 45.0)
+    print_gps_hint(gps_data)
     gps.stop()
 
     lat = gps_data.get("latitude")

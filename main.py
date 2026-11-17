@@ -157,9 +157,12 @@ class RoadSenseApp:
                     now = time.perf_counter()
                     actual_fps = 25.0 / (now - fps_timer)
                     fps_timer = now
+                    gps = self.gps_reader.get_coordinates()
                     logger.info(
                         f"[Heartbeat] Scan loop running at: {actual_fps:.2f} FPS | "
-                        f"Queue backlog: {self.uploader.queue.qsize()}"
+                        f"Queue backlog: {self.uploader.queue.qsize()} | "
+                        f"GPS: {gps['raw_status']} (fix={gps['has_fix']}, sats={gps['satellites']}, "
+                        f"NMEA lines={gps['sentences_received']})"
                     )
 
         except Exception as e:

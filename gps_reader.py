@@ -37,7 +37,8 @@ class GPSReader:
             "satellites": 0,
             "has_fix": False,
             "timestamp": None,
-            "raw_status": "initializing"
+            "raw_status": "initializing",
+            "sentences_received": 0
         }
 
     def start(self):
@@ -135,6 +136,8 @@ class GPSReader:
                     continue
 
                 self._last_data_time = time.time()
+                with self._lock:
+                    self.data["sentences_received"] += 1
                 # Match any talker ID (GP, GN, GL, GA, BD, ...)
                 if line.startswith("$") and len(line) > 6:
                     kind = line[3:6]
