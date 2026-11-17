@@ -1,3 +1,4 @@
+import sys
 import time
 import threading
 import logging
@@ -23,6 +24,9 @@ class GPSReader:
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._serial_conn = None
+        self._last_data_time = time.time()
+        self._bad_ports = set()
+        self.NO_DATA_TIMEOUT = 10.0
 
         # Latest GPS telemetry
         self.data: Dict[str, Any] = {
@@ -69,14 +73,19 @@ class GPSReader:
         # Remove duplicates while preserving order
         candidate_ports = list(dict.fromkeys(candidate_ports))
 
+        if all(p in self._bad_ports for p in candidate_ports):
+            self._bad_ports.clear()
         for p in candidate_ports:
+            if p in self._bad_ports:
+                continue
             try:
                 ser = serial.Serial(p, self.baudrate, timeout=self.timeout)
                 logger.info(f"Successfully connected to GPS device on {p}")
                 self.port = p
+                self._last_data_time = time.time()
                 return ser
             except Exception as e:
-                logger.debug(f"Could not open port {p}: {e}")
+                logger.warning(f"Could not open GPS port {p}: {e}")
 
         logger.warning(
             "GPS hardware port could not be opened. "
@@ -89,7 +98,10 @@ class GPSReader:
         try:
             import serial
         except ImportError:
-            logger.error("'pyserial' is not installed. GPS will operate in dummy/fallback mode.")
+            logger.error(
+                "'pyserial' is not installed in this Python environment (%s). "
+                "Run: pip install pyserial", sys.executable
+            )
             return
 
         while self._running:
@@ -100,15 +112,33 @@ class GPSReader:
                     time.sleep(5.0)
                     continue
 
+            # Port opened but silent (e.g. /dev/serial0 mapped to the wrong UART): try next port
+            if time.time() - self._last_data_time > self.NO_DATA_TIMEOUT:
+                logger.warning(
+                    f"No NMEA data from {self.port} for {self.NO_DATA_TIMEOUT:.0f}s; "
+                    "trying other serial ports..."
+                )
+                self._bad_ports.add(self.port)
+                try:
+                    self._serial_conn.close()
+                except Exception:
+                    pass
+                self._serial_conn = None
+                continue
+
             try:
                 line = self._serial_conn.readline().decode("ascii", errors="ignore").strip()
                 if not line:
                     continue
 
-                if line.startswith(("$GPRMC", "$GNRMC")):
-                    self._parse_rmc(line)
-                elif line.startswith(("$GPGGA", "$GNGGA")):
-                    self._parse_gga(line)
+                self._last_data_time = time.time()
+                # Match any talker ID (GP, GN, GL, GA, BD, ...)
+                if line.startswith("$") and len(line) > 6:
+                    kind = line[3:6]
+                    if kind == "RMC":
+                        self._parse_rmc(line)
+                    elif kind == "GGA":
+                        self._parse_gga(line)
 
             except Exception as e:
                 logger.warning(f"Error reading GPS serial stream: {e}")
