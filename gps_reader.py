@@ -50,13 +50,16 @@ class GPSReader:
     def stop(self):
         """Stops the GPS reading background thread."""
         self._running = False
+        # Let the reader thread exit its blocking readline() (timeout ~1s) before closing the
+        # port; closing underneath it makes pyserial raise a spurious TypeError.
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=self.timeout + 2.0)
         if self._serial_conn:
             try:
                 self._serial_conn.close()
             except Exception:
                 pass
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=2.0)
+            self._serial_conn = None
         logger.info("GPS Reader stopped.")
 
     def get_coordinates(self) -> Dict[str, Any]:
@@ -141,6 +144,8 @@ class GPSReader:
                         self._parse_gga(line)
 
             except Exception as e:
+                if not self._running:
+                    break
                 logger.warning(f"Error reading GPS serial stream: {e}")
                 try:
                     self._serial_conn.close()
