@@ -24,7 +24,7 @@ class RoadSenseApp:
     Main Application for Raspberry Pi 4 Model B:
     - 480p Camera Feed regulated at strictly 5 FPS
     - Non-blocking Background GPS Telemetry
-    - NCNN/YOLO Object Detection
+    - ONNX/YOLO Object Detection
     - Asynchronous In-Memory Cloudinary Upload + Firebase Firestore Alerting (Zero Disk Writes)
     """
 

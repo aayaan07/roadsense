@@ -56,8 +56,8 @@ class Config:
     DEVICE_ID = os.getenv("DEVICE_ID", "rpi4-roadsense-01")
 
     # Model configuration
-    # Can point to directory containing model.ncnn.bin, model.ncnn.param, metadata.yaml or .pt file
-    MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR))
+    # Path to an .onnx model file (or a directory containing one)
+    MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "model.onnx"))
 
     # JPEG Compression Quality (1-100) for in-memory upload (lower saves bandwidth on cellular)
     JPEG_QUALITY = int(os.getenv("JPEG_QUALITY", "85"))

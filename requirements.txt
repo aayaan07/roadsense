@@ -1,5 +1,5 @@
 # RoadSense Dependencies for Raspberry Pi 4 Model B
-ultralytics>=8.0.0
+onnxruntime>=1.16.0
 opencv-python-headless>=4.8.0
 cloudinary>=1.36.0
 requests>=2.31.0
