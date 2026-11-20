@@ -6,7 +6,7 @@ Run this script to verify:
 3. Firebase Firestore document creation
 4. Camera stream (480p capture)
 5. GPS serial port connection
-6. YOLO / NCNN model inference
+6. YOLO / ONNX model inference
 """
 
 import sys

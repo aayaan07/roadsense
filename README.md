@@ -1,6 +1,6 @@
 # RoadSense - Raspberry Pi 4 Edge Detection System
 
-High-performance real-time edge detection system for Raspberry Pi 4 Model B. Detects road hazards/potholes using an NCNN/YOLO model, stamps live GPS coordinates, streams images directly from RAM to Cloudinary, and triggers alerts in Firebase Firestore.
+High-performance real-time edge detection system for Raspberry Pi 4 Model B. Detects road hazards/potholes using an ONNX/YOLO model, stamps live GPS coordinates, streams images directly from RAM to Cloudinary, and triggers alerts in Firebase Firestore.
 
 ---
 
@@ -71,10 +71,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-> **Note on NCNN Acceleration**: If running the model in NCNN mode, install the ncnn build for ARM:
-> ```bash
-> pip install ncnn
-> ```
+> **Note on the model**: Place your exported YOLOv8 ONNX model at `model.onnx` in the project root (or set `MODEL_PATH` to its location). Inference runs on `onnxruntime` (CPU).
 
 4. **Verify Configuration**:
 Ensure `.env.local` contains your credentials:
