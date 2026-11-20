@@ -48,6 +48,8 @@ class Config:
 
     # GPS Serial Settings
     # Raspberry Pi standard UART is /dev/serial0 (pins 8 & 10) or /dev/ttyUSB0 for USB GPS dongles
+    # ENABLE_GPS: 1 = read GPS and attach coordinates, 0 = GPS fully disabled (no serial access, no GPS checks)
+    ENABLE_GPS = os.getenv("ENABLE_GPS", "1").strip().lower() in ("1", "true", "yes", "on")
     GPS_PORT = os.getenv("GPS_PORT", "/dev/serial0")
     GPS_BAUDRATE = int(os.getenv("GPS_BAUDRATE", "9600"))
     GPS_TIMEOUT = float(os.getenv("GPS_TIMEOUT", "1.0"))

@@ -38,7 +38,7 @@ def test_config():
         print(f"  - Cloudinary Cloud Name: {Config.CLOUDINARY_CLOUD_NAME}")
         print(f"  - Target FPS: {Config.TARGET_FPS}")
         print(f"  - Resolution: {Config.FRAME_WIDTH}x{Config.FRAME_HEIGHT}")
-        print(f"  - GPS Port: {Config.GPS_PORT}")
+        print(f"  - GPS Enabled: {Config.ENABLE_GPS}" + (f" (port {Config.GPS_PORT})" if Config.ENABLE_GPS else ""))
         print(f"  - Model Path: {Config.MODEL_PATH}")
         return True
     except Exception as e:
@@ -117,6 +117,9 @@ def test_camera():
 
 def test_gps():
     print_step("4. Testing GPS Serial Connection")
+    if not Config.ENABLE_GPS:
+        print("[SKIPPED] GPS disabled (ENABLE_GPS=0).")
+        return True
     gps = GPSReader(port=Config.GPS_PORT, baudrate=Config.GPS_BAUDRATE)
     gps.start()
     print(f"[INFO] Listening on {Config.GPS_PORT} for 3 seconds...")
@@ -139,6 +142,10 @@ def test_detector():
     print_step("5. Testing Model Detection Engine")
     try:
         det = ObjectDetector(model_path=Config.MODEL_PATH, conf_threshold=Config.CONFIDENCE_THRESHOLD)
+        if det.session is None:
+            print(f"[FAIL] ONNX model did not load from {Config.MODEL_PATH} (see log above).")
+            return False
+        print(f"  - Input size: {det.input_hw}, Classes: {det.class_names}")
         dummy = np.zeros((480, 640, 3), dtype=np.uint8)
         results = det.detect(dummy)
         print(f"[SUCCESS] Model inference executed cleanly. Detections on blank frame: {len(results)}")
@@ -160,16 +167,17 @@ def test_live_camera_capture_and_push(collection: str = "tests"):
 
     # 1. Fetch current GPS data
     print("[1/4] Reading live GPS coordinates...")
-    gps = GPSReader(port=Config.GPS_PORT, baudrate=Config.GPS_BAUDRATE)
+    gps = GPSReader(port=Config.GPS_PORT, baudrate=Config.GPS_BAUDRATE, enabled=Config.ENABLE_GPS)
     gps.start()
-    time.sleep(1.5)  # Allow background thread to read current serial sentence
+    if Config.ENABLE_GPS:
+        time.sleep(1.5)  # Allow background thread to read current serial sentence
     gps_data = gps.get_coordinates()
     gps.stop()
 
     lat = gps_data.get("latitude")
     lon = gps_data.get("longitude")
     has_fix = gps_data.get("has_fix", False)
-    print(f"      GPS Status: {'LOCKED' if has_fix else 'SEARCHING FIX'}")
+    print(f"      GPS Status: {'DISABLED' if not Config.ENABLE_GPS else 'LOCKED' if has_fix else 'SEARCHING FIX'}")
     print(f"      Coordinates: Lat={lat}, Lon={lon}, Satellites={gps_data.get('satellites', 0)}")
 
     # 2. Click image from camera
@@ -202,7 +210,7 @@ def test_live_camera_capture_and_push(collection: str = "tests"):
 
     # Add a clean timestamp / GPS watermark onto the test image
     timestamp_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    banner_text = f"TEST CAPTURE | {timestamp_str} | GPS: {lat if lat else 'No-Fix'}, {lon if lon else 'No-Fix'}"
+    banner_text = f"TEST CAPTURE | {timestamp_str} | GPS: {'Disabled' if not Config.ENABLE_GPS else (lat if lat else 'No-Fix')}, {'' if not Config.ENABLE_GPS else (lon if lon else 'No-Fix')}"
     cv2.rectangle(frame, (0, h - 26), (w, h), (20, 20, 20), -1)
     cv2.putText(frame, banner_text, (8, h - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 255, 0), 1, cv2.LINE_AA)
 

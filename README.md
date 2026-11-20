@@ -84,7 +84,13 @@ CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
 CLOUDINARY_UPLOAD_PRESET=ml_default
+
+# 1 = use the GPS module (default), 0 = disable GPS entirely (no serial access, no GPS checks)
+ENABLE_GPS=1
+MODEL_PATH=model.onnx   # optional, defaults to model.onnx in the project root
 ```
+
+With `ENABLE_GPS=0`, alerts are still uploaded but without coordinates (latitude/longitude stored as 0.0, `gps_fixed=false`), the frame banner shows "GPS: Disabled", and `test.py` skips the GPS check.
 
 ---
 

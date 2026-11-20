@@ -35,6 +35,7 @@ class RoadSenseApp:
         logger.info("Initializing RoadSense Pi 4 Edge Detection System...")
         logger.info(f"Device ID: {Config.DEVICE_ID}")
         logger.info(f"Target FPS: {Config.TARGET_FPS} (Interval: {1.0 / Config.TARGET_FPS:.3f}s)")
+        logger.info(f"GPS: {'enabled' if Config.ENABLE_GPS else 'DISABLED (ENABLE_GPS=0)'}")
         logger.info(f"Camera: {Config.CAMERA_SOURCE} @ {Config.FRAME_WIDTH}x{Config.FRAME_HEIGHT}")
 
         self.running = False
@@ -44,7 +45,8 @@ class RoadSenseApp:
         self.gps_reader = GPSReader(
             port=Config.GPS_PORT,
             baudrate=Config.GPS_BAUDRATE,
-            timeout=Config.GPS_TIMEOUT
+            timeout=Config.GPS_TIMEOUT,
+            enabled=Config.ENABLE_GPS
         )
 
         self.uploader = AsyncUploader(
@@ -125,7 +127,10 @@ class RoadSenseApp:
                         logger.info(
                             f"DETECTED {len(detections)} object(s)! "
                             f"Top: {detections[0]['label']} ({detections[0]['confidence']*100:.1f}%) | "
-                            f"GPS Fix: {gps_coords['has_fix']} (Lat: {gps_coords['latitude']}, Lon: {gps_coords['longitude']})"
+                            + (
+                                f"GPS Fix: {gps_coords['has_fix']} (Lat: {gps_coords['latitude']}, Lon: {gps_coords['longitude']})"
+                                if Config.ENABLE_GPS else "GPS: disabled"
+                            )
                         )
 
                         # Annotate frame in RAM with bounding boxes & GPS watermark

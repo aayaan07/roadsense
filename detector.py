@@ -214,7 +214,9 @@ class ObjectDetector:
         speed = gps_data.get("speed_kmh", 0.0)
         has_fix = gps_data.get("has_fix", False)
 
-        if has_fix and lat is not None and lon is not None:
+        if gps_data.get("raw_status") == "disabled":
+            telemetry_str = "GPS: Disabled"
+        elif has_fix and lat is not None and lon is not None:
             telemetry_str = f"GPS: {lat:.5f}, {lon:.5f} | Spd: {speed:.1f} km/h"
         else:
             telemetry_str = "GPS: Searching Fix... | Spd: 0.0 km/h"
@@ -225,7 +227,7 @@ class ObjectDetector:
             (8, h - 7),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.4,
-            (0, 255, 0) if has_fix else (0, 165, 255),
+            (0, 255, 0) if has_fix else ((180, 180, 180) if gps_data.get("raw_status") == "disabled" else (0, 165, 255)),
             1,
             cv2.LINE_AA
         )

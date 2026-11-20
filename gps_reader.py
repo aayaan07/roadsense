@@ -15,7 +15,9 @@ class GPSReader:
     from hardware UART (/dev/serial0) or USB GPS (/dev/ttyUSB0) without blocking.
     """
 
-    def __init__(self, port: str = "/dev/serial0", baudrate: int = 9600, timeout: float = 1.0):
+    def __init__(self, port: str = "/dev/serial0", baudrate: int = 9600, timeout: float = 1.0,
+                 enabled: bool = True):
+        self.enabled = enabled
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
@@ -37,11 +39,14 @@ class GPSReader:
             "satellites": 0,
             "has_fix": False,
             "timestamp": None,
-            "raw_status": "initializing"
+            "raw_status": "initializing" if enabled else "disabled"
         }
 
     def start(self):
-        """Starts the GPS reading background thread."""
+        """Starts the GPS reading background thread (no-op when GPS is disabled)."""
+        if not self.enabled:
+            logger.info("GPS disabled (ENABLE_GPS=0); not opening any serial port.")
+            return
         self._running = True
         self._thread = threading.Thread(target=self._worker, daemon=True, name="GPSReaderThread")
         self._thread.start()
