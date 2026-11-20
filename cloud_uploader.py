@@ -3,6 +3,7 @@ import time
 import queue
 import logging
 import threading
+import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
@@ -178,9 +179,14 @@ class AsyncUploader:
             buffer = io.BytesIO(image_bytes)
             buffer.seek(0)
 
+            # Unique name per upload so a new image never replaces an older one
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            public_id = f"{self.config.DEVICE_ID}_{stamp}_{uuid.uuid4().hex[:8]}"
+
             # Upload options
             upload_kwargs = {
                 "folder": self.config.CLOUDINARY_FOLDER,
+                "public_id": public_id,
                 "resource_type": "image"
             }
             if self.config.CLOUDINARY_UPLOAD_PRESET:
